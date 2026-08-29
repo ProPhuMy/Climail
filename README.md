@@ -31,6 +31,7 @@ Create a local `.env` file for any OAuth secret values you need:
 
 ```dotenv
 CLIENT_SECRET=your_google_oauth_client_secret
+CLIENT_ID=your_google_oauth_client_id
 ```
 
 This file should stay local to your machine and should not be committed to source control.
