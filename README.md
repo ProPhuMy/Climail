@@ -10,7 +10,8 @@ This project is still small enough to live in the project root without a `src/` 
 
 - Python 3.10 or newer
 - A Gmail or Outlook account
-- A Google OAuth client for OAuth-based login, or an app password if your provider requires one
+- For Gmail: either a Google OAuth client or an app password if your account requires one
+- For Outlook: an app password for the account
 
 ## Setup
 
@@ -27,7 +28,7 @@ Install the dependencies:
 python -m pip install typer keyring python-dotenv platformdirs google-auth google-auth-oauthlib requests
 ```
 
-Create a local `.env` file for any OAuth secret values you need:
+Create a local `.env` file for any OAuth secret values you need if you are using Gmail OAuth:
 
 ```dotenv
 CLIENT_SECRET=your_google_oauth_client_secret
@@ -44,12 +45,18 @@ Run:
 python main.py acc add
 ```
 
-You will be prompted to choose between OAuth and app-password authentication, then select a provider. CLIMAIL stores the active account metadata in a local credentials file and stores the real secret in the OS keyring.
+You will be prompted to choose an authentication method and a provider. Outlook accounts should use an app password; Gmail can use OAuth or an app password depending on account configuration. CLIMAIL stores the active account metadata in a local credentials file and stores the real secret in the OS keyring.
 
 To switch between saved accounts:
 
 ```powershell
-python main.py acc switch-account
+python main.py acc switch_account
+```
+
+To check between default accounts:
+
+```powershell
+python main.py acc default
 ```
 
 ## Commands
@@ -88,7 +95,7 @@ The subject and body are entered interactively. Omitting `--receiver` prompts fo
 
 ## Provider notes
 
-Gmail and Outlook may block basic password authentication depending on account settings. OAuth is the preferred approach for Gmail, while app-password or provider-specific configurations may still be required for other mail providers.
+Gmail may support OAuth or app-password authentication depending on your account setup. Outlook does not use OAuth in this workflow; it should be configured with an app password instead.
 
 ## Security
 

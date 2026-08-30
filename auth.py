@@ -80,6 +80,7 @@ def add_accounts():
     with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
         json.dump(data,f, indent=2)
     keyring.set_password(APP, email, secret)
+    typer.echo("Account added, you can use the cli now")
 
 def get_credentials():
     if CREDENTIALS_FILE.exists():
@@ -95,8 +96,7 @@ def get_credentials():
         
         return email, secret, provider, auth_method
     else:
-        typer.echo("Add an account to continue")
-        raise typer.Exit()
+        raise FileNotFoundError("Credentials file not found")
 
 @app.command()
 def switch_account():
@@ -119,7 +119,17 @@ def switch_account():
             json.dump(data,f, indent=2)
     else:
         raise FileNotFoundError("Credentials file not found")
-    
+
+@app.command("default")
+def check_default_acc():
+    if CREDENTIALS_FILE.exists():
+        with open(CREDENTIALS_FILE, "r") as f:
+            data = json.load(f)
+        temp = data["Active account"]
+        typer.echo(f"Default account is {temp}")    
+    else:
+        raise FileNotFoundError("Credentials file not found")
+
 @app.command()
 def get_token():
     """
@@ -137,7 +147,7 @@ def get_token():
             keyring.set_password(APP, email, temp)
             typer.echo("New refresh token set")
     else:
-        typer.echo("Creds file not found, add a new account")
+        raise FileNotFoundError("Credentials file not found")
         
 
 if __name__ == "__main__":
