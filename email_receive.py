@@ -6,6 +6,8 @@ from datetime import date, timedelta
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
+from platformdirs import user_documents_dir
+from pathlib import Path
 import typer
 from dotenv import load_dotenv
 import os
@@ -18,6 +20,7 @@ HOST = {"Gmail": "imap.gmail.com",
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 SCOPES = ['openid', 'https://mail.google.com/', 'https://www.googleapis.com/auth/userinfo.email']
+DOC_DIR = Path(user_documents_dir("CLIMAIL"))
 
 @app.callback()
 def connect(ctx: typer.Context):
@@ -32,7 +35,7 @@ def connect(ctx: typer.Context):
             raise Exception("Get a new refresh token by running acc get_token")
 
         auth_string = f"user={account}\1auth=Bearer {token}\1\1" 
-        mail = imaplib.IMAP4_SSL("imap.gmail.com") #only support oauth for gmail now cause im lazy
+        mail = imaplib.IMAP4_SSL("imap.gmail.com") #only support oauth for gmail 
         mail.authenticate('XOAUTH2', lambda _ : auth_string.encode('utf-8'))
         mail.select("Inbox")
     elif auth_method == "Password":
@@ -95,22 +98,36 @@ def print_emails(ctx: typer.Context):
         disposition = part.get_content_disposition()
         if content_type == "text/plain" and disposition != "attachment":
             body = part.get_content()
+            typer.echo(body)
         elif disposition == "attachment":
             filename = part.get_filename()
-            content = part.get_payload(decode=True)
-            attachment.append({"filename": filename, "type": content_type, "content": content})
+            confirm = typer.confirm(f"Attachment named {filename} type {content_type} found, do you want to download it? (not recommended)", default=False)
+            if confirm:
+                content = part.get_payload(decode=True)
+                attachment.append({"filename": filename, "content": content})
 
-    if body:
-        typer.echo(body)
-        
     if len(attachment) != 0:
+        typer.echo("Downloading...")
         for item in attachment:
-            typer.echo(f"Filename: {item["filename"]} | Type: {item["type"]}")
-        if typer.confirm("Do you want to download attachment(s)?", default=False):
-            typer.echo("Downloading...")
-            for item in attachment:
-                with open(item["filename"], "wb") as f:
+            DOC_DIR.mkdir(parents=True, exist_ok=True)
+            file1 = DOC_DIR / item["filename"]
+            if check_file_name(file1):
+                temp = typer.confirm(f"File {item["filename"]} found, continuing will overwrite it")
+                if temp:
+                    with open(file1, "wb") as f:
+                        f.write(item["content"])
+                else: 
+                    typer.echo(f"Download operation for {item["filename"]} cancelled")
+                    continue
+            else:
+                with open(file1, "wb") as f:
                     f.write(item["content"])
+
+def check_file_name(file: Path):
+    if file.exists():
+        return True
+    else:
+        return False
 
 @app.command("seen")
 def mark_seen(ctx: typer.Context, since: int = 30):

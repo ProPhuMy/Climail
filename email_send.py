@@ -8,6 +8,7 @@ from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
 from dotenv import load_dotenv
 import os
+import re
 
 load_dotenv()
 
@@ -49,6 +50,9 @@ def connect(ctx: typer.Context):
 def send(ctx: typer.Context, receiver: Annotated[str, typer.Option(help="Input your recipient email")] = ""):
     if not receiver:
         receiver = typer.prompt("Enter recipient email")
+    if not check_valid_email_format(receiver):
+        typer.echo("Not a valid email format")
+        typer.Exit()
     server = ctx.obj["server"]
     msg = EmailMessage()
     msg["to"] = receiver
@@ -59,8 +63,14 @@ def send(ctx: typer.Context, receiver: Annotated[str, typer.Option(help="Input y
     typer.echo("Sending...")
     try:
         server.send_message(msg)
-        typer.echo("Email sent")
+        typer.echo("Email accepted by the SMTP server")
+    except smtplib.SMTPException as e:
+        typer.echo(f"Error sending email. {e}")
     finally:
         server.quit()
-        
+
+def check_valid_email_format(email : str):
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return True if re.match(pattern, email) else False
+
     
