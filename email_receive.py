@@ -20,7 +20,7 @@ HOST = {"Gmail": "imap.gmail.com",
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 SCOPES = ['openid', 'https://mail.google.com/', 'https://www.googleapis.com/auth/userinfo.email']
-DOC_DIR = Path(user_documents_dir("CLIMAIL"))
+DOC_DIR = Path(user_documents_dir()) / "CLIMAIL"
 
 @app.callback()
 def connect(ctx: typer.Context):
