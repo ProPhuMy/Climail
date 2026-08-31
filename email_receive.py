@@ -72,12 +72,13 @@ def search_mail(ctx: typer.Context, criterion: str ="UNSEEN", since: int = 30):
                 typer.echo(f"Subject: {msg["Subject"]}")
 
 @app.command("read")
-def print_emails(ctx: typer.Context):
+def print_emails(ctx: typer.Context, ID: str = None):
     """
     Read a selected email based on the inputted UID
     """
     mail = ctx.obj["mailbox"]
-    ID = typer.prompt("Input UID")
+    if ID == None:
+        ID = typer.prompt("Input UID")
     if not ID.isdigit():
         raise typer.BadParameter("Input numbers only")
     status, data = mail.uid("fetch", ID, "(RFC822)")
