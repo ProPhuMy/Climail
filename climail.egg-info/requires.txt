@@ -1,7 +1,0 @@
-typer
-keyring
-python-dotenv
-platformdirs
-google-auth
-google-auth-oauthlib
-requests
