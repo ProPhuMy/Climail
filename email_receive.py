@@ -6,11 +6,13 @@ from datetime import date, timedelta
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
-from platformdirs import user_documents_dir
+from google.auth.credentials import TokenState
+from platformdirs import user_documents_dir, user_cache_path
 from pathlib import Path
 import typer
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 
@@ -21,18 +23,56 @@ CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 SCOPES = ['openid', 'https://mail.google.com/', 'https://www.googleapis.com/auth/userinfo.email']
 DOC_DIR = Path(user_documents_dir()) / "CLIMAIL"
+CACHE_PATH = user_cache_path() / "CLIMAIL"
+CACHE_FILE = CACHE_PATH / "token_cache.json"
+
+def add_token(token: str, email:str):
+    with open(CACHE_FILE, "r") as f:
+        data = json.load(f)
+        data[email] = token
+    with open(CACHE_FILE, "w", encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+    
+def get_token(email: str):
+    if CACHE_FILE.exists():
+        try:
+            with open(CACHE_FILE, "r") as f:
+                data = json.load(f)
+            token = data[email]
+            return token
+        except:
+            pass
+    return None
 
 @app.callback()
 def connect(ctx: typer.Context):
     account, secret, provider, auth_method = get_credentials()
     provider = HOST[provider]
     if auth_method == "Oauth":
-        credentials = Credentials(token=None, refresh_token=secret, token_uri="https://oauth2.googleapis.com/token", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES)
-        try:
-            credentials.refresh(Request())
-            token = credentials.token
-        except RefreshError:
-            raise Exception("Get a new refresh token by running acc get_token")
+        token = get_token(account)
+        credentials = Credentials(token=token, refresh_token=secret, token_uri="https://oauth2.googleapis.com/token", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES)
+        if not credentials.token:
+            CACHE_PATH.mkdir(parents=True, exist_ok=True)  
+            try:
+                credentials.refresh(Request())
+                token = credentials.token
+                if CACHE_FILE.exists():
+                    with open(CACHE_FILE, "r") as f:
+                        data = json.load(f)
+                else:
+                    data = {}
+                data[account] = token
+                with open(CACHE_FILE, "w", encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+            except RefreshError:
+                raise Exception("Get a new refresh token by running acc get_token")
+        elif credentials.token_state != TokenState.FRESH:
+            try:
+                credentials.refresh(Request())
+                token = credentials.token
+                add_token(token, account)
+            except RefreshError:
+                raise Exception("Get a new refresh token by running acc get_token")
 
         auth_string = f"user={account}\1auth=Bearer {token}\1\1" 
         mail = imaplib.IMAP4_SSL("imap.gmail.com") #only support oauth for gmail 

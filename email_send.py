@@ -6,9 +6,12 @@ from typing import Annotated
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
+from google.auth.credentials import TokenState
+from platformdirs import user_cache_path
 from dotenv import load_dotenv
 import os
 import re
+import json
 
 load_dotenv()
 
@@ -19,6 +22,26 @@ PORT = 587
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 SCOPES = ['openid', 'https://mail.google.com/', 'https://www.googleapis.com/auth/userinfo.email']
+CACHE_PATH = user_cache_path() / "CLIMAIL"
+CACHE_FILE = CACHE_PATH / "token_cache.json"
+
+def add_token(token: str, email:str):
+    with open(CACHE_FILE, "r") as f:
+        data = json.load(f)
+        data[email] = token
+    with open(CACHE_FILE, "w", encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+    
+def get_token(email: str):
+    if CACHE_FILE.exists():
+        try:
+            with open(CACHE_FILE, "r") as f:
+                data = json.load(f)
+            token = data[email]
+            return token
+        except:
+            pass
+    return None
 
 @app.callback()
 def connect(ctx: typer.Context):
@@ -28,16 +51,34 @@ def connect(ctx: typer.Context):
     server.starttls()
     server.ehlo()
     if method == "Oauth":
-        credentials = Credentials(token=None, refresh_token=secret, token_uri="https://oauth2.googleapis.com/token", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES)
-        try:
-            credentials.refresh(Request())
-            token = credentials.token
-        except RefreshError:
-            raise Exception("Get a new refresh token by running acc get_token")
-    
+        token = get_token(account)
+        credentials = Credentials(token=token, refresh_token=secret, token_uri="https://oauth2.googleapis.com/token", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES)
+        if not credentials.token:
+            CACHE_PATH.mkdir(parents=True, exist_ok=True)
+            try:
+                credentials.refresh(Request())
+                token = credentials.token
+                if CACHE_FILE.exists():
+                    with open(CACHE_FILE, "r") as f:
+                        data = json.load(f)
+                else:
+                    data = {}
+                data[account] = token
+                with open(CACHE_FILE, "w", encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+            except RefreshError:
+                raise Exception("Get a new refresh token by running acc get_token")
+        elif credentials.token_state != TokenState.FRESH:
+            try:
+                credentials.refresh(Request())
+                token = credentials.token
+                add_token(token, account)
+            except RefreshError:
+                raise Exception("Get a new refresh token by running acc get_token")
+
         auth_string = f"user={account}\1auth=Bearer {token}\1\1" 
 
-        server.auth('XOAUTH2', lambda _ : auth_string)
+        server.auth('XOAUTH2', lambda: auth_string)
     elif method == "Password":
         server.login(account, secret)
     
@@ -46,7 +87,7 @@ def connect(ctx: typer.Context):
     ctx.obj["server"] = server
     ctx.obj["email"] = account
 
-@app.command()
+@app.command("send_email")
 def send(ctx: typer.Context, receiver: Annotated[str, typer.Option(help="Input your recipient email")] = ""):
     if not receiver:
         receiver = typer.prompt("Enter recipient email")
