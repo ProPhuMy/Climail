@@ -1,7 +1,7 @@
 import typer
-from email_receive import app as email_receive
-from auth import app as account_app
-from email_send import app as email_send
+from .email_receive import app as email_receive
+from .auth import app as account_app
+from .email_send import app as email_send
 
 app = typer.Typer()
 app.add_typer(account_app, name = "acc")

@@ -1,5 +1,5 @@
 import typer
-from auth import get_credentials
+from .auth import get_credentials
 import smtplib
 from email.message import EmailMessage
 from typing import Annotated

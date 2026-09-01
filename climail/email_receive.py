@@ -1,7 +1,7 @@
 import imaplib
 from email import policy
 from email.parser import BytesParser, BytesHeaderParser
-from auth import get_credentials
+from .auth import get_credentials
 from datetime import date, timedelta
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -87,9 +87,9 @@ def connect(ctx: typer.Context):
     ctx.obj["mailbox"] = mail
 
 @app.command("check")
-def search_mail(ctx: typer.Context, criterion: str ="UNSEEN", since: int = 30):
+def search_mail(ctx: typer.Context, criterion: str ="UNSEEN", since: int = 1):
     """
-    Find all (unseen) emails in the last 30 days
+    Find all (unseen) emails in the last 1 day
     """
     mail = ctx.obj["mailbox"]
     temporary = date.today() - timedelta(days=since)
@@ -173,9 +173,9 @@ def check_file_name(file: Path):
         return False
 
 @app.command("seen")
-def mark_seen(ctx: typer.Context, since: int = 30):
+def mark_seen(ctx: typer.Context, since: int = 1):
     """
-    Mark every unseen emails in the 30 day period as seen
+    Mark every unseen emails in the 1 day period as seen
     """
     mail = ctx.obj["mailbox"]
     temporary = date.today() - timedelta(days=since)

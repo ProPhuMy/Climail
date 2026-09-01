@@ -1,0 +1,2 @@
+[console_scripts]
+climail = climail.main:app

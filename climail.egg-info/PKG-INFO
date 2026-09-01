@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: climail
+Version: 0.1.0
+License-File: LICENSE
+Requires-Dist: typer
+Requires-Dist: keyring
+Requires-Dist: python-dotenv
+Requires-Dist: platformdirs
+Requires-Dist: google-auth
+Requires-Dist: google-auth-oauthlib
+Requires-Dist: requests
+Dynamic: license-file

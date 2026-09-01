@@ -1,0 +1,13 @@
+LICENSE
+README.md
+pyproject.toml
+src/__init__.py
+src/auth.py
+src/email_receive.py
+src/email_send.py
+src/main.py
+src/climail.egg-info/PKG-INFO
+src/climail.egg-info/SOURCES.txt
+src/climail.egg-info/dependency_links.txt
+src/climail.egg-info/entry_points.txt
+src/climail.egg-info/top_level.txt

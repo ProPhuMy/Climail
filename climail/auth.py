@@ -98,7 +98,7 @@ def get_credentials():
     else:
         raise FileNotFoundError("Credentials file not found")
 
-@app.command()
+@app.command("switch")
 def switch_account():
     """
     Switch default account
