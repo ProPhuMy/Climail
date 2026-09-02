@@ -14,6 +14,7 @@ import re
 import json
 from .cache import store_data
 from datetime import datetime
+from prompt_toolkit import prompt
 
 load_dotenv()
 
@@ -101,7 +102,7 @@ def send(ctx: typer.Context, receiver: Annotated[str, typer.Option(help="Input y
     msg["to"] = receiver
     msg["from"] = ctx.obj["email"]
     msg["subject"] = typer.prompt("Subject")
-    body = typer.prompt("Body\n")
+    body = prompt("Body:\n", multiline=True)
     msg.set_content(body)
 
     typer.echo("Sending...")
