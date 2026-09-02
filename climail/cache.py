@@ -56,7 +56,7 @@ def get_subjects(ctx: typer.Context):
     conn.close()
 
 @app.command("read")
-def see_mail(ctx :typer.Context):
+def see_mail(ctx :typer.Context, id: int = None):
     result = ctx.obj["result"]
     conn = ctx.obj["db"]
     if not result:
@@ -64,7 +64,9 @@ def see_mail(ctx :typer.Context):
         typer.echo("No emails has been sent yet")
         raise typer.Exit()
 
-    id = typer.prompt("Enter email ID", default=int)
+    if id is None:
+        id = typer.prompt("Enter email ID", default=int)
+    
     cursor = conn.execute("SELECT Subject, Date_sent, Recipient, Sender, Body FROM email_sent WHERE ID = ?",
     (id,)
     )
