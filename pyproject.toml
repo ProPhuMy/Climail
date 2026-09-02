@@ -8,7 +8,8 @@ dependencies = [
   "platformdirs",
   "google-auth",
   "google-auth-oauthlib",
-  "requests"
+  "requests",
+  "prompt_toolkit"
 ]
 
 [project.scripts]
