@@ -27,6 +27,12 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
+If you want to use it anywhere, install via pipx (ensure pipx is install)
+```powershell
+cd Path\To\Project\Directory
+pipx install .
+```
+
 ### 2. Install Dependencies
 
 ```powershell
