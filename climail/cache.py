@@ -41,7 +41,7 @@ def get_subjects(ctx: typer.Context):
     if not result:
         conn.close()
         typer.echo("No emails has been sent yet")
-        typer.Exit()
+        raise typer.Exit()
 
     cursor = conn.execute("""
     SELECT ID, Subject FROM email_sent;
@@ -62,7 +62,7 @@ def see_mail(ctx :typer.Context):
     if not result:
         conn.close()
         typer.echo("No emails has been sent yet")
-        typer.Exit()
+        raise typer.Exit()
 
     id = typer.prompt("Enter email ID", default=int)
     cursor = conn.execute("SELECT Subject, Date_sent, Recipient, Sender, Body FROM email_sent WHERE ID = ?",
@@ -72,7 +72,7 @@ def see_mail(ctx :typer.Context):
     if data is None:
         conn.close()
         typer.echo("No email message of that ID found")
-        typer.Exit()
+        raise typer.Exit()
 
     subject = data[0]
     date_sent = data[1]
@@ -97,14 +97,14 @@ def delete_row(ctx: typer.Context, delete_all: Annotated[bool, typer.Option("--s
     if not result:
         conn.close()
         typer.echo("No email message to delete")
-        typer.Exit()
+        raise typer.Exit()
 
     if delete_all:
         conn.execute("DELETE FROM email_sent;")
         conn.commit()
         conn.close()
         typer.echo("All records deleted")
-        typer.Exit()
+        raise typer.Exit()
     
     id = typer.prompt("Enter email ID", default=int)
     conn.execute("DELETE FROM email_sent WHERE ID = ?", (id,))

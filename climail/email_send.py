@@ -95,7 +95,7 @@ def send(ctx: typer.Context, receiver: Annotated[str, typer.Option(help="Input y
         receiver = typer.prompt("Enter recipient email")
     if not check_valid_email_format(receiver):
         typer.echo("Not a valid email format")
-        typer.Exit()
+        raise typer.Exit()
     server = ctx.obj["server"]
     msg = EmailMessage()
     msg["to"] = receiver
