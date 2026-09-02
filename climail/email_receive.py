@@ -13,6 +13,8 @@ import typer
 from dotenv import load_dotenv
 import os
 import json
+from rich import print
+from rich.panel import Panel
 
 load_dotenv()
 
@@ -109,7 +111,7 @@ def search_mail(ctx: typer.Context, criterion: str ="UNSEEN", since: int = 1):
             if status == "OK":
                 msg = BytesHeaderParser(policy=policy.default).parsebytes(data[0][1])
                 typer.echo(f"UID: {temp.decode()} | From: {msg["From"]}")
-                typer.echo(f"Subject: {msg["Subject"]}")
+                typer.echo(f"Subject: {msg["Subject"]}\n")
 
 @app.command("read")
 def print_emails(ctx: typer.Context, id: str = ""):
@@ -128,9 +130,9 @@ def print_emails(ctx: typer.Context, id: str = ""):
         typer.echo("Fetch failed")
         raise typer.Exit()
     msg = BytesParser(policy=policy.default).parsebytes(data[0][1])
-    typer.echo(f"From: {msg["From"]}")
-    typer.echo(f"Date: {msg["Date"]}")
-    typer.echo(f"Subject: {msg["Subject"]}")
+    send_by = msg["From"]
+    date = msg["Date"]
+    subject = msg["Subject"]
     body = None
     attachment = []
     for part in msg.walk():
@@ -139,9 +141,17 @@ def print_emails(ctx: typer.Context, id: str = ""):
   
         content_type = part.get_content_type()
         disposition = part.get_content_disposition()
+        
         if content_type == "text/plain" and disposition != "attachment":
             body = part.get_content()
-            typer.echo(body)
+            content = Panel(
+                f"[bold]From:[/bold] {send_by}\n"
+                f"[bold]Date:[/bold] {date}\n\n"
+                f"{body}",
+                title=f"[bold]{subject}[/bold]"
+                )
+            print(content)
+
         elif disposition == "attachment":
             filename = part.get_filename()
             confirm = typer.confirm(f"Attachment named {filename} type {content_type} found, do you want to download it? (not recommended)", default=False)

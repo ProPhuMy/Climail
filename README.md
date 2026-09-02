@@ -1,203 +1,260 @@
 # CLIMAIL
 
-CLIMAIL is a command-line email client written in Python. It supports managing email accounts, receiving emails, and sending messages through Gmail or Outlook. Authentication supports both OAuth (Gmail) and app password methods.
+A command-line email client for managing multiple email accounts with support for Gmail and Outlook. Send and receive emails with OAuth2 or app password authentication, and maintain a local cache of all sent emails.
 
-## Project Structure
+## Features
 
-```
-main.py           - Entry point for the CLI application
-auth.py           - Account authentication and management (OAuth, app passwords)
-email_receive.py  - Email receiving via IMAP protocol
-email_send.py     - Email sending via SMTP protocol
-cache.py          - Database and caching functionality
-test.py           - Test and development utilities
-```
+- Multi-account support for Gmail and Outlook
+- OAuth2 authentication for Gmail or app password for both providers
+- Send emails with subject, body, and recipient validation
+- Receive emails with unseen message filtering and full content reading
+- Local SQLite database for email history tracking
+- Automatic token caching and refresh for OAuth
+- Attachment download support from received emails
 
 ## Requirements
 
-- Python 3.10 or newer
-- A Gmail or Outlook account
-- For Gmail: either a Google OAuth credential set or an app password
-- For Outlook: an app password for the account
+- Python 3.10+
+- Gmail or Outlook account
+- Google OAuth credentials (for Gmail OAuth) OR app passwords (for Gmail/Outlook)
 
 ## Installation
 
-Create and activate a virtual environment:
+### 1. Clone and Setup Environment
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install the required dependencies:
+### 2. Install Dependencies
 
 ```powershell
-python -m pip install typer keyring python-dotenv platformdirs google-auth google-auth-oauthlib requests
+pip install -r requirements.txt
 ```
 
-Set up environment variables by creating a `.env` file in the project root for OAuth (if using Gmail OAuth):
+Or manually install:
+```powershell
+pip install typer keyring python-dotenv platformdirs google-auth google-auth-oauthlib requests rich
+```
+
+### 3. Configure OAuth (Optional - for Gmail OAuth)
+
+Create a `.env` file in the project root:
 
 ```dotenv
-CLIENT_SECRET=your_google_oauth_client_secret
 CLIENT_ID=your_google_oauth_client_id
+CLIENT_SECRET=your_google_oauth_client_secret
 ```
 
-**Important:** Keep this file local and never commit it to version control.
+Important: Add `.env` to `.gitignore` and never commit credentials.
 
-## Account Management
+## Quick Start
 
-### Adding an Account
+### Add Your First Email Account
 
 ```powershell
-python main.py acc add
+python -m climail.main acc add
 ```
 
-You will be prompted to:
-1. Choose an authentication method:
-   - **Option 1**: OAuth (recommended for Gmail)
-   - **Option 2**: App password (works for both Gmail and Outlook)
-2. Select your email provider:
-   - **Gmail** (supports both OAuth and app password)
-   - **Outlook** (requires app password)
+You'll be prompted to:
+1. Choose authentication method: **OAuth** (Gmail) or **App Password** (Gmail/Outlook)
+2. Select email provider: **Gmail** or **Outlook**
+3. Enter credentials
 
-The application stores account metadata securely in a local credentials file and passwords/tokens in the OS keyring.
+### Send an Email
 
-## CLI Commands
+```powershell
+python -m climail.main send send-email
+```
+
+Or with recipient specified:
+```powershell
+python -m climail.main send send-email --receiver recipient@example.com
+```
+
+### Check Unseen Emails
+
+```powershell
+python -m climail.main receive check
+```
+
+### Read an Email
+
+```powershell
+python -m climail.main receive read --id 12345
+```
+
+## CLI Reference
 
 ### Account Management (`acc`)
 
-#### Add an Account
-```powershell
-python main.py acc add
-```
-Interactive setup to add a new email account. Choose authentication method (OAuth or app password) and email provider (Gmail or Outlook).
+| Command | Description |
+|---------|-------------|
+| `acc add` | Add a new email account |
+| `acc switch-account` | Switch between saved accounts |
+| `acc default` | Show current active account |
+| `acc get-token` | Refresh OAuth token for Gmail |
 
-#### Switch Default Account
+**Example:**
 ```powershell
-python main.py acc switch-account
+python -m climail.main acc add
 ```
-Switch between multiple saved email accounts. Lists all available accounts and prompts you to select the default.
-
-#### Check Current Default Account
-```powershell
-python main.py acc default
-```
-Displays the currently active email account.
-
-#### Get New OAuth Token
-```powershell
-python main.py acc get-token
-```
-Obtain a new OAuth refresh token for your Gmail account. Use this if your refresh token expires or needs to be updated.
 
 ### Email Receiving (`receive`)
 
-#### Check for Unseen Emails
+| Command | Options | Description |
+|---------|---------|-------------|
+| `receive check` | `--since N` | Check unseen emails (last N days, default: 1) |
+| `receive read` | `--id UID` | Read full email by UID |
+| `receive seen` | `--since N` | Mark unseen emails as read |
+
+**Examples:**
 ```powershell
-python main.py receive check
+# Check emails from last 7 days
+python -m climail.main receive check --since 7
+
+# Read email with specific UID
+python -m climail.main receive read --id 12345
+
+# Mark emails as seen from last 3 days
+python -m climail.main receive seen --since 3
 ```
-Search for unseen emails from the last 30 days. Displays email UIDs, sender, and subject line.
-
-**Options:**
-- `--since` (integer): Specify the number of days to look back (default: 30)
-
-Example - Check emails from the last 7 days:
-```powershell
-python main.py receive check --since 7
-```
-
-#### Read an Email
-```powershell
-python main.py receive read
-```
-Read the full content of an email by its UID. Displays sender, date, subject, and body. Prompts to download any attachments found.
-
-**Options:**
-- `--id` (string): Specify the email UID directly (optional, will prompt if not provided)
-
-Example:
-```powershell
-python main.py receive read --id 12345
-```
-
-#### Mark Emails as Seen
-```powershell
-python main.py receive seen
-```
-Mark unseen emails from the last 30 days as seen/read.
-
-**Options:**
-- `--since` (integer): Specify the number of days to look back (default: 30)
 
 ### Email Sending (`send`)
 
-#### Send an Email
+| Command | Options | Description |
+|---------|---------|-------------|
+| `send send-email` | `--receiver EMAIL` | Compose and send email |
+
+**Examples:**
 ```powershell
-python main.py send send-email
+# Send email with interactive prompts
+python -m climail.main send send-email
+
+# Send email with recipient specified
+python -m climail.main send send-email --receiver user@example.com
 ```
-Compose and send an email. Prompts for recipient (if not provided), subject, and body content.
 
-**Options:**
-- `--receiver` (string): Specify recipient email address (optional, will prompt if not provided)
+Sent emails are automatically stored in local database.
 
-Example:
+### Email Storage (`store`)
+
+| Command | Options | Description |
+|---------|---------|-------------|
+| `store subject` | — | List subjects of all sent emails |
+| `store read` | — | Read a sent email from history |
+| `store delete-row` | `--something` | Delete a sent email record (or `--something` to delete all) |
+
+**Examples:**
 ```powershell
-python main.py send send-email --receiver recipient@example.com
+# View all sent email subjects
+python -m climail.main store subject
+
+# Read sent email from history
+python -m climail.main store read
+
+# Delete a sent email record
+python -m climail.main store delete-row
+
+# Delete all sent email records
+python -m climail.main store delete-row --something
 ```
 
-## Authentication Details
+## Authentication Methods
 
-- **Gmail with OAuth**: Uses Google's OAuth2 flow with token caching and automatic refresh
-- **Gmail/Outlook with App Password**: Direct IMAP/SMTP authentication
-- Credentials are stored securely using your system's keyring/password manager
-- Tokens are cached locally for faster subsequent authentication
+### Gmail OAuth2
 
-### Setting Up Gmail OAuth
+Best for Gmail users. Provides secure access without storing passwords.
 
-To use OAuth with Gmail:
-
+**Setup:**
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Gmail API
-4. Create an OAuth 2.0 Desktop Application credential
-5. Download the client credentials and extract your `CLIENT_ID` and `CLIENT_SECRET`
-6. Add these values to your `.env` file
+2. Create project and enable Gmail API
+3. Create OAuth 2.0 credentials (Desktop Application)
+4. Add `CLIENT_ID` and `CLIENT_SECRET` to `.env`
 
-### Setting Up App Passwords
+**Pros:** Secure, no password stored, auto-refresh tokens  
+**Cons:** Requires initial setup
 
-For Gmail:
-1. Enable [2-Step Verification](https://support.google.com/accounts/answer/185839) on your Google Account
-2. Generate an [App Password](https://support.google.com/accounts/answer/185833)
-3. Use this app password when prompted during account setup
+### App Passwords
 
-For Outlook:
-1. Create an [App Password](https://support.microsoft.com/en-us/account-billing/using-app-passwords-with-your-microsoft-account) in your Microsoft Account settings
-2. Use this app password when prompted during account setup
+Works for Gmail and Outlook. Simpler setup, suitable for both providers.
+
+**Gmail:**
+1. Enable [2-Step Verification](https://support.google.com/accounts/answer/185839)
+2. Generate [App Password](https://support.google.com/accounts/answer/185833)
+
+**Outlook:**
+1. Create [App Password](https://support.microsoft.com/account-billing/using-app-passwords-with-your-microsoft-account)
+
+**Pros:** Simple setup, works with Outlook  
+**Cons:** Must manage password security
+
+## Project Structure
+
+```
+climail/
+├── main.py              # CLI entry point
+├── auth.py              # Account management & OAuth
+├── email_send.py        # SMTP email sending
+├── email_receive.py     # IMAP email receiving
+├── cache.py             # SQLite email history storage
+└── __init__.py
+
+.env                      # Credentials (DO NOT COMMIT)
+pyproject.toml           # Project metadata
+README.md                # This file
+```
+
+## Storage Locations
+
+- **Credentials**: System keyring (secure)
+- **OAuth Tokens**: `~/.cache/CLIMAIL/token_cache.json`
+- **Email History**: `~/.config/CLIMAIL/climail.db` (SQLite)
+- **Downloaded Attachments**: `~/Documents/CLIMAIL/`
 
 ## Troubleshooting
 
-**"Get a new refresh token by running acc get-token"**
-- Your OAuth refresh token has expired
-- Run `python main.py acc get-token` to obtain a new one
+### "Get a new refresh token by running acc get-token"
+OAuth token expired. Refresh it:
+```powershell
+python -m climail.main acc get-token
+```
 
-**"Credentials file not found"**
-- You haven't added any email accounts yet
-- Run `python main.py acc add` to add your first account
+### "Credentials file not found"
+No accounts added yet. Add your first account:
+```powershell
+python -m climail.main acc add
+```
 
-**"Password/token not found"**
-- The password/token stored in your keyring is missing or corrupted
-- Try removing and re-adding your account with `python main.py acc add`
+### "Password/token not found"
+Keyring entry corrupted. Remove and re-add the account:
+```powershell
+python -m climail.main acc add
+```
 
-**IMAP/SMTP Connection Errors**
-- Verify your email provider supports the selected authentication method
-- For Gmail: Ensure you're using either an app password or OAuth (not your regular Gmail password)
-- For Outlook: Ensure you're using an app password
+### IMAP/SMTP Connection Errors
+- Verify correct authentication method for your provider
+- Gmail: Use app password or OAuth (not regular password)
+- Outlook: Must use app password
+- Check provider's email security settings
 
-## Security
+### Attachment Download Issues
+- Confirm file path is writable (`~/Documents/CLIMAIL/`)
+- Try declining overwrite if file already exists
+- Check disk space
 
-Never commit:
+## Security Best Practices
 
-- `.env`
+1. **Never commit `.env`** - Add to `.gitignore`
+2. **Secure keyring**: Passwords stored in OS keyring, not files
+3. **Token caching**: Only cached for performance; refresh on use
+4. **HTTPS only**: All connections use secure protocols
+5. **Local database**: Email history stored locally only
+
+## License
+
+See LICENSE file for details
 - `credentials.json` 
 - real passwords
 - app passwords

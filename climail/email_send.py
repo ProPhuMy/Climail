@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 import os
 import re
 import json
+from .cache import store_data
+from datetime import datetime
 
 load_dotenv()
 
@@ -99,12 +101,15 @@ def send(ctx: typer.Context, receiver: Annotated[str, typer.Option(help="Input y
     msg["to"] = receiver
     msg["from"] = ctx.obj["email"]
     msg["subject"] = typer.prompt("Subject")
-    msg.set_content(typer.prompt("Body"))
+    body = typer.prompt("Body\n")
+    msg.set_content(body)
 
     typer.echo("Sending...")
     try:
         server.send_message(msg)
         typer.echo("Email accepted by the SMTP server")
+        time = datetime.today().strftime("%H:%M | %d-%b-%Y")
+        store_data(time, msg["to"], msg["from"], msg["subject"], body)
     except smtplib.SMTPException as e:
         typer.echo(f"Error sending email. {e}")
     finally:
