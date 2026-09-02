@@ -1,0 +1,10 @@
+typer 
+keyring 
+python-dotenv 
+platformdirs 
+google-auth 
+google-auth-oauthlib 
+requests 
+rich
+prompt_toolkit
+
