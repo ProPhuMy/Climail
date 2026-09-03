@@ -2,7 +2,7 @@ import imaplib
 from email import policy
 from email.parser import BytesParser, BytesHeaderParser
 from .auth import get_credentials
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
@@ -33,7 +33,7 @@ def add_token(token: str, email:str, expiry: datetime):
         data = json.load(f)
         data[email] = {}
         data[email]["token"] = token
-        data[email]["expiry"] = expiry
+        data[email]["expiry"] = expiry.isoformat()
     with open(CACHE_FILE, "w", encoding='utf-8') as f:
         json.dump(data, f, indent=2)
     
@@ -55,6 +55,7 @@ def connect(ctx: typer.Context):
     provider = HOST[provider]
     if auth_method == "Oauth":
         token, expiry = get_token(account)
+        expiry = (datetime.fromisoformat(expiry) if expiry else None)
         credentials = Credentials(token=token, refresh_token=secret, token_uri="https://oauth2.googleapis.com/token", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES, expiry=expiry)
         if not credentials.token:
             CACHE_PATH.mkdir(parents=True, exist_ok=True)  
@@ -70,7 +71,7 @@ def connect(ctx: typer.Context):
 
                 data[account] = {
                     "token": token,
-                    "expiry": expiry
+                    "expiry": expiry.isoformat()
                 }
                 with open(CACHE_FILE, "w", encoding='utf-8') as f:
                     json.dump(data, f, indent=2)

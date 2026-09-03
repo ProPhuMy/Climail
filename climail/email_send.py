@@ -35,7 +35,7 @@ def add_token(token: str, email:str, expiry:datetime):
         data = json.load(f)
         data[email] = {}
         data[email]["token"] = token
-        data[email]["expiry"] = expiry
+        data[email]["expiry"] = expiry.isoformat()
     with open(CACHE_FILE, "w", encoding='utf-8') as f:
         json.dump(data, f, indent=2)
     
@@ -60,6 +60,7 @@ def connect(ctx: typer.Context):
     server.ehlo()
     if method == "Oauth":
         token, expiry = get_token(account)
+        expiry = (datetime.fromisoformat(expiry) if expiry else None)
         credentials = Credentials(token=token, refresh_token=secret, token_uri="https://oauth2.googleapis.com/token", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES,expiry=expiry)
         if not credentials.token:
             CACHE_PATH.mkdir(parents=True, exist_ok=True)
@@ -75,7 +76,7 @@ def connect(ctx: typer.Context):
 
                 data[account] = {
                     "token": token,
-                    "expiry": expiry
+                    "expiry": expiry.isoformat()
                 }
                 with open(CACHE_FILE, "w", encoding='utf-8') as f:
                     json.dump(data, f, indent=2)
@@ -92,7 +93,7 @@ def connect(ctx: typer.Context):
 
         auth_string = f"user={account}\1auth=Bearer {token}\1\1" 
 
-        server.auth('XOAUTH2', lambda challenge=None: auth_string)
+        server.auth('XOAUTH2', lambda challenge=None: auth_string if challenge is None else "")
     elif method == "Password":
         server.login(account, secret)
     
@@ -102,7 +103,7 @@ def connect(ctx: typer.Context):
     ctx.obj["email"] = account
 
 @app.command("send_email")
-def send(ctx: typer.Context, receiver: Annotated[str, typer.Option("-r" ,help="Input your recipient email")] = "", attachment_str: Annotated[str, typer.Option("-a", "--attach",help="Input the path to the file to attach it to email")] = ""):
+def send(ctx: typer.Context, receiver: Annotated[str, typer.Option("-r", "--receiver" ,help="Input your recipient email")] = "", attachment_str: Annotated[str, typer.Option("-a", "--attach",help="Input the path to the file to attach it to email")] = ""):
     if not receiver:
         receiver = typer.prompt("Enter recipient email")
     if not check_valid_email_format(receiver):
@@ -116,7 +117,7 @@ def send(ctx: typer.Context, receiver: Annotated[str, typer.Option("-r" ,help="I
     body = prompt("Body:\n", multiline=True)
     msg.set_content(body)
     if attachment_str:
-        attachment = Path(attachment_str)
+        attachment = Path(attachment_str).expanduser()
         if attachment.exists():
             temporary, _ = mimetypes.guess_file_type(attachment)
             if temporary is None:
@@ -129,6 +130,9 @@ def send(ctx: typer.Context, receiver: Annotated[str, typer.Option("-r" ,help="I
                     subtype= subtype,
                     filename = attachment.name
                 )
+        else:
+            typer.echo(f"No attachment found at {attachment}")
+            raise typer.Exit()
 
     typer.echo("Sending...")
     try:
