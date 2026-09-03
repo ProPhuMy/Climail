@@ -93,7 +93,7 @@ def see_mail(ctx :typer.Context, id: int = None):
     conn.close()
     
 @app.command()
-def delete_row(ctx: typer.Context, delete_all: Annotated[bool, typer.Option("--something", help="Delete all the email sent records")] = False):
+def delete(ctx: typer.Context, delete_all: Annotated[bool, typer.Option("--all","-a" , help="Delete all the email sent records")] = False):
     result = ctx.obj["result"]
     conn = ctx.obj["db"]
     if not result:

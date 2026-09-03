@@ -14,7 +14,9 @@ import re
 import json
 from .cache import store_data
 from datetime import datetime
+from pathlib import Path
 from prompt_toolkit import prompt
+import mimetypes
 
 load_dotenv()
 
@@ -91,7 +93,7 @@ def connect(ctx: typer.Context):
     ctx.obj["email"] = account
 
 @app.command("send_email")
-def send(ctx: typer.Context, receiver: Annotated[str, typer.Option(help="Input your recipient email")] = ""):
+def send(ctx: typer.Context, receiver: Annotated[str, typer.Option("-r" ,help="Input your recipient email")] = "", attachment_str: Annotated[str, typer.Option("-a", "--attach",help="Input the path to the file to attach it to email")] = ""):
     if not receiver:
         receiver = typer.prompt("Enter recipient email")
     if not check_valid_email_format(receiver):
@@ -104,6 +106,20 @@ def send(ctx: typer.Context, receiver: Annotated[str, typer.Option(help="Input y
     msg["subject"] = typer.prompt("Subject")
     body = prompt("Body:\n", multiline=True)
     msg.set_content(body)
+    if attachment_str:
+        attachment = Path(attachment_str)
+        if attachment.exists():
+            temporary, _ = mimetypes.guess_file_type(attachment)
+            if temporary is None:
+                temporary = 'application/octet-stream'
+            maintype, subtype = temporary.split("/")
+            with open(attachment, "rb") as f:
+                msg.add_attachment(
+                    f.read(),
+                    maintype= maintype,
+                    subtype= subtype,
+                    filename = attachment.name
+                )
 
     typer.echo("Sending...")
     try:

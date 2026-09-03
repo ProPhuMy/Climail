@@ -1,12 +1,13 @@
 # CLIMAIL
 
-A command-line email client for managing multiple email accounts with support for Gmail and Outlook. Send and receive emails with OAuth2 or app password authentication, and maintain a local cache of all sent emails.
+A Linux command-line email client for managing multiple Gmail and Outlook accounts. Send and receive email with app passwords, and use OAuth2 for Gmail account setup and receiving.
 
 ## Features
 
 - Multi-account support for Gmail and Outlook
-- OAuth2 authentication for Gmail or app password for both providers
+- OAuth2 authentication for Gmail and app passwords for Gmail or Outlook
 - Send emails with subject, body, and recipient validation
+- Send a file attachment with a MIME type inferred from its filename
 - Receive emails with unseen message filtering and full content reading
 - Local SQLite database for email history tracking
 - Automatic token caching and refresh for OAuth
@@ -14,7 +15,7 @@ A command-line email client for managing multiple email accounts with support fo
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.13+
 - Gmail or Outlook account
 - Google OAuth credentials (for Gmail OAuth) OR app passwords (for Gmail/Outlook)
 
@@ -22,27 +23,28 @@ A command-line email client for managing multiple email accounts with support fo
 
 ### 1. Clone and Setup Environment
 
-```powershell
+```bash
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+source .venv/bin/activate
 ```
 
-If you want to use it anywhere, install via pipx (ensure pipx is install)
-```powershell
-cd Path\To\Project\Directory
+Install the project and its dependencies:
+
+```bash
+python -m pip install -r requirements.txt
+python -m pip install -e .
+```
+
+To install it for use anywhere, use `pipx` instead:
+
+```bash
+cd /path/to/project
 pipx install .
 ```
 
 ### 2. Install Dependencies
 
-```powershell
-pip install -r requirements.txt
-```
-
-Or manually install:
-```powershell
-pip install typer keyring python-dotenv platformdirs google-auth google-auth-oauthlib requests rich
-```
+The installation commands above install the dependencies listed in `requirements.txt`.
 
 ### 3. Configure OAuth (Optional - for Gmail OAuth)
 
@@ -59,8 +61,8 @@ Important: Add `.env` to `.gitignore` and never commit credentials.
 
 ### Add Your First Email Account
 
-```powershell
-python -m climail.main acc add
+```bash
+climail acc add
 ```
 
 You'll be prompted to:
@@ -70,25 +72,31 @@ You'll be prompted to:
 
 ### Send an Email
 
-```powershell
-python -m climail.main send send-email
+```bash
+climail send send_email
 ```
 
 Or with recipient specified:
-```powershell
-python -m climail.main send send-email --receiver recipient@example.com
+```bash
+climail send send_email --receiver recipient@example.com
+```
+
+With an attachment:
+
+```bash
+climail send send_email --receiver recipient@example.com --attach ~/Documents/report.pdf
 ```
 
 ### Check Unseen Emails
 
-```powershell
-python -m climail.main receive check
+```bash
+climail receive check
 ```
 
 ### Read an Email
 
-```powershell
-python -m climail.main receive read --id 12345
+```bash
+climail receive read --id 12345
 ```
 
 ## CLI Reference
@@ -98,13 +106,13 @@ python -m climail.main receive read --id 12345
 | Command | Description |
 |---------|-------------|
 | `acc add` | Add a new email account |
-| `acc switch-account` | Switch between saved accounts |
+| `acc switch` | Switch between saved accounts |
 | `acc default` | Show current active account |
 | `acc get-token` | Refresh OAuth token for Gmail |
 
 **Example:**
-```powershell
-python -m climail.main acc add
+```bash
+climail acc add
 ```
 
 ### Email Receiving (`receive`)
@@ -116,30 +124,30 @@ python -m climail.main acc add
 | `receive seen` | `--since N` | Mark unseen emails as read |
 
 **Examples:**
-```powershell
+```bash
 # Check emails from last 7 days
-python -m climail.main receive check --since 7
+climail receive check --since 7
 
 # Read email with specific UID
-python -m climail.main receive read --id 12345
+climail receive read --id 12345
 
 # Mark emails as seen from last 3 days
-python -m climail.main receive seen --since 3
+climail receive seen --since 3
 ```
 
 ### Email Sending (`send`)
 
 | Command | Options | Description |
 |---------|---------|-------------|
-| `send send-email` | `--receiver EMAIL` | Compose and send email |
+| `send send_email` | `--receiver EMAIL`, `--attach PATH` | Compose and send email, optionally with an attachment |
 
 **Examples:**
-```powershell
+```bash
 # Send email with interactive prompts
-python -m climail.main send send-email
+climail send send_email
 
 # Send email with recipient specified
-python -m climail.main send send-email --receiver user@example.com
+climail send send_email --receiver user@example.com
 ```
 
 Sent emails are automatically stored in local database.
@@ -150,21 +158,21 @@ Sent emails are automatically stored in local database.
 |---------|---------|-------------|
 | `store subject` | — | List subjects of all sent emails |
 | `store read` | — | Read a sent email from history |
-| `store delete-row` | `--something` | Delete a sent email record (or `--something` to delete all) |
+| `store delete-row` | `--delete`, `-d` | Delete a sent email record, or delete all records |
 
 **Examples:**
-```powershell
+```bash
 # View all sent email subjects
-python -m climail.main store subject
+climail store subject
 
 # Read sent email from history
-python -m climail.main store read
+climail store read
 
 # Delete a sent email record
-python -m climail.main store delete-row
+climail store delete
 
 # Delete all sent email records
-python -m climail.main store delete-row --something
+climail store delete --all
 ```
 
 ## Authentication Methods
@@ -214,6 +222,7 @@ README.md                # This file
 
 ## Storage Locations
 
+- **Account metadata**: `~/.config/CLIMAIL/credentials.json`
 - **Credentials**: System keyring (secure)
 - **OAuth Tokens**: `~/.cache/CLIMAIL/token_cache.json`
 - **Email History**: `~/.config/CLIMAIL/climail.db` (SQLite)
@@ -223,20 +232,20 @@ README.md                # This file
 
 ### "Get a new refresh token by running acc get-token"
 OAuth token expired. Refresh it:
-```powershell
-python -m climail.main acc get-token
+```bash
+climail acc get-token
 ```
 
 ### "Credentials file not found"
 No accounts added yet. Add your first account:
-```powershell
-python -m climail.main acc add
+```bash
+climail acc add
 ```
 
 ### "Password/token not found"
 Keyring entry corrupted. Remove and re-add the account:
-```powershell
-python -m climail.main acc add
+```bash
+climail acc add
 ```
 
 ### IMAP/SMTP Connection Errors
@@ -257,16 +266,6 @@ python -m climail.main acc add
 3. **Token caching**: Only cached for performance; refresh on use
 4. **HTTPS only**: All connections use secure protocols
 5. **Local database**: Email history stored locally only
-
-## License
-
-See LICENSE file for details
-- `credentials.json` 
-- real passwords
-- app passwords
-- refresh tokens
-
-Use the operating system keyring for stored secrets and keep local config values on your machine only.
 
 ## License
 
