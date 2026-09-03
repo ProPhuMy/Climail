@@ -28,10 +28,12 @@ DOC_DIR = Path(user_documents_dir()) / "CLIMAIL"
 CACHE_PATH = user_cache_path() / "CLIMAIL"
 CACHE_FILE = CACHE_PATH / "token_cache.json"
 
-def add_token(token: str, email:str):
+def add_token(token: str, email:str, expiry: datetime):
     with open(CACHE_FILE, "r") as f:
         data = json.load(f)
-        data[email] = token
+        data[email] = {}
+        data[email]["token"] = token
+        data[email]["expiry"] = expiry
     with open(CACHE_FILE, "w", encoding='utf-8') as f:
         json.dump(data, f, indent=2)
     
@@ -40,30 +42,36 @@ def get_token(email: str):
         try:
             with open(CACHE_FILE, "r") as f:
                 data = json.load(f)
-            token = data[email]
-            return token
+            token = data[email]["token"]
+            expiry = data[email]["expiry"]
+            return token, expiry
         except:
             pass
-    return None
+    return None, None
 
 @app.callback()
 def connect(ctx: typer.Context):
     account, secret, provider, auth_method = get_credentials()
     provider = HOST[provider]
     if auth_method == "Oauth":
-        token = get_token(account)
-        credentials = Credentials(token=token, refresh_token=secret, token_uri="https://oauth2.googleapis.com/token", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES)
+        token, expiry = get_token(account)
+        credentials = Credentials(token=token, refresh_token=secret, token_uri="https://oauth2.googleapis.com/token", client_id=CLIENT_ID, client_secret=CLIENT_SECRET, scopes=SCOPES, expiry=expiry)
         if not credentials.token:
             CACHE_PATH.mkdir(parents=True, exist_ok=True)  
             try:
                 credentials.refresh(Request())
                 token = credentials.token
+                expiry = credentials.expiry
                 if CACHE_FILE.exists():
                     with open(CACHE_FILE, "r") as f:
                         data = json.load(f)
                 else:
                     data = {}
-                data[account] = token
+
+                data[account] = {
+                    "token": token,
+                    "expiry": expiry
+                }
                 with open(CACHE_FILE, "w", encoding='utf-8') as f:
                     json.dump(data, f, indent=2)
             except RefreshError:
@@ -72,7 +80,8 @@ def connect(ctx: typer.Context):
             try:
                 credentials.refresh(Request())
                 token = credentials.token
-                add_token(token, account)
+                expiry = credentials.expiry
+                add_token(token, account, expiry)
             except RefreshError:
                 raise Exception("Get a new refresh token by running acc get_token")
 
